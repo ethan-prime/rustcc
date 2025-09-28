@@ -1,0 +1,1 @@
+C:\Users\Ethan\Desktop\code\rustcc\rustcc\target\debug\rustcc.exe: C:\Users\Ethan\Desktop\code\rustcc\rustcc\src\ast.rs C:\Users\Ethan\Desktop\code\rustcc\rustcc\src\lexer.rs C:\Users\Ethan\Desktop\code\rustcc\rustcc\src\main.rs C:\Users\Ethan\Desktop\code\rustcc\rustcc\src\parser.rs
