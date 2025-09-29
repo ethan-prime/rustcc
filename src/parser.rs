@@ -1,6 +1,5 @@
 use crate::lexer::Token;
-use crate::ast::{self, FunctionDefinition, ProgramNode, StatementNode};
-use std::mem;
+use crate::ast::{ExprNode, FunctionDefinition, StatementNode, UnaryOperator};
 
 macro_rules! expect {
     ($p:expr, $pat:pat $(if $guard:expr)? $(,)?) => {{
@@ -52,16 +51,35 @@ impl Parser {
         }
     }
 
-    fn parse_return_statement(&mut self) -> Result<StatementNode, String> {
-        expect!(self, Token::Return)?;
-        let curr_tok = self.curr_tok()?;
-        match curr_tok {
+    fn parse_expr(&mut self) -> Result<ExprNode, String> {
+        // right now we only support integer exprs
+        let t = self.curr_tok()?;
+        match t {
             &Token::Integer(i) => {
                 self.advance()?;
-                Ok(StatementNode::Return(i))
+                Ok(ExprNode::Integer(i))
             },
-            _ => Err(format!("expected intger, found {:?}", curr_tok)),
+            &Token::Hyphen | &Token::Tilde => {
+                let unary_op = match t {&Token::Hyphen => UnaryOperator::Negate, _ => UnaryOperator::Complement};
+                self.advance()?;
+                let expr = Box::new(self.parse_expr()?);
+                Ok(ExprNode::Unary { unary_op, expr })
+            },
+            &Token::OpenParen => {
+                self.advance()?;
+                let expr = self.parse_expr()?;
+                expect!(self, Token::CloseParen)?;
+                Ok(expr)
+            },
+            _ => {
+                Err(format!("expeceted an expression, found {:?}", t))
+            },
         }
+    }
+ 
+    fn parse_return_statement(&mut self) -> Result<StatementNode, String> {
+        expect!(self, Token::Return)?;
+        Ok(StatementNode::Return(self.parse_expr()?))
     }
 
     pub fn parse_function_definition(&mut self) -> Result<FunctionDefinition, String> {
@@ -74,7 +92,6 @@ impl Parser {
         expect!(self, Token::OpenBrace)?;              // '{'
 
         // ... parse body items until '}' ...
-        
         let return_statement = self.parse_return_statement()?;
 
         expect!(self, Token::Semicolon)?;

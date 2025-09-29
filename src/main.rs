@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod lexer;
 mod parser;
 mod ast;
@@ -10,6 +12,7 @@ fn main() -> Result<(), String> {
     let tokens = l.tokenize(); 
     println!("{:?}", tokens);
     let mut p = Parser::new(tokens);
-    let _ = p.parse_function_definition()?;
+    let f = p.parse_function_definition()?;
+    println!("{:#?}", f);
     Ok(())
 }

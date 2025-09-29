@@ -13,6 +13,9 @@ pub enum Token {
     CloseBrace,
     Int,
     EOF,
+    Tilde,
+    Hyphen,
+    Decrement,
 }
 pub struct Lexer {
     input: String,
@@ -39,6 +42,13 @@ impl Lexer {
 
     fn cur_char(&self) -> Result<char, String> {
         match self.char_at(self.pos) {
+            Some(c) => Ok(c),
+            None => Err("exceeded bounds trying to read current character".to_string()),
+        }
+    }
+
+    fn peek_char(&self) -> Result<char, String> {
+        match self.char_at(self.pos + 1) {
             Some(c) => Ok(c),
             None => Err("exceeded bounds trying to read current character".to_string()),
         }
@@ -125,6 +135,15 @@ impl Lexer {
                 ')' => Token::CloseParen,
                 '{' => Token::OpenBrace,
                 '}' => Token::CloseBrace,
+                '~' => Token::Tilde,
+                '-' => {
+                    if let Ok(c) = self.peek_char() && c == '-' {
+                        self.pos += 1; 
+                        Token::Decrement
+                    } else {
+                        Token::Hyphen
+                    }
+                }
                 _ => {
                     if c.is_numeric() {
                         Token::Integer(self.collect_number().unwrap())

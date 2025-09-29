@@ -1,7 +1,23 @@
-pub enum StatementNode {
-    Return(i32)
+
+#[derive(Debug)]
+
+pub enum UnaryOperator {
+    Complement,
+    Negate,
 }
 
+#[derive(Debug)]
+pub enum ExprNode {
+    Integer(i32),
+    Unary{unary_op: UnaryOperator, expr: Box<ExprNode>}
+}
+
+#[derive(Debug)]
+pub enum StatementNode {
+    Return(ExprNode)
+}
+
+#[derive(Debug)]
 pub struct FunctionDefinition {
     identifier: String,
     body: StatementNode,
