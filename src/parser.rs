@@ -1,5 +1,5 @@
 use crate::lexer::Token;
-use crate::ast::{ExprNode, FunctionDefinition, StatementNode, UnaryOperator};
+use crate::ast::{BinaryOperator, ExprNode, FactorNode, FunctionDefinition, StatementNode, UnaryOperator};
 
 macro_rules! expect {
     ($p:expr, $pat:pat $(if $guard:expr)? $(,)?) => {{
@@ -51,25 +51,44 @@ impl Parser {
         }
     }
 
-    fn parse_expr(&mut self) -> Result<ExprNode, String> {
-        // right now we only support integer exprs
+    fn parse_expr(&mut self, min_prec: i32) -> Result<Box<ExprNode>, String> {
+        let mut left = match self.parse_factor()? {
+            FactorNode::Expr(expr) => expr,
+            FactorNode::Unary{unary_op:op,expr:e} => Box::new(ExprNode::Unary { unary_op: op, expr: e }),
+            FactorNode::Integer(i) => Box::new(ExprNode::Integer(i)),
+        };
+
+        while let Ok(tok) = self.curr_tok() {
+            if let Some(binary_op) = tok.is_binary_operator() && binary_op.precedence() >= min_prec {
+                self.advance()?;
+                let right = self.parse_expr(binary_op.precedence() + 1)?;
+                left = Box::new(ExprNode::Binary{ lhs: left, rhs: right, binary_op: binary_op });
+            } else {
+                break;
+            }
+        }
+
+        Ok(left)
+    }
+
+    fn parse_factor(&mut self) -> Result<FactorNode, String> {
         let t = self.curr_tok()?;
         match t {
             &Token::Integer(i) => {
                 self.advance()?;
-                Ok(ExprNode::Integer(i))
+                Ok(FactorNode::Integer(i))
             },
             &Token::Hyphen | &Token::Tilde => {
                 let unary_op = match t {&Token::Hyphen => UnaryOperator::Negate, _ => UnaryOperator::Complement};
                 self.advance()?;
-                let expr = Box::new(self.parse_expr()?);
-                Ok(ExprNode::Unary { unary_op, expr })
+                let expr: Box<ExprNode> = self.parse_expr(0)?;
+                Ok(FactorNode::Unary { unary_op, expr })
             },
             &Token::OpenParen => {
                 self.advance()?;
-                let expr = self.parse_expr()?;
+                let expr = self.parse_expr(0)?;
                 expect!(self, Token::CloseParen)?;
-                Ok(expr)
+                Ok(FactorNode::Expr(expr))
             },
             _ => {
                 Err(format!("expeceted an expression, found {:?}", t))
@@ -79,7 +98,7 @@ impl Parser {
  
     fn parse_return_statement(&mut self) -> Result<StatementNode, String> {
         expect!(self, Token::Return)?;
-        Ok(StatementNode::Return(self.parse_expr()?))
+        Ok(StatementNode::Return(*self.parse_expr(0)?))
     }
 
     pub fn parse_function_definition(&mut self) -> Result<FunctionDefinition, String> {
@@ -97,5 +116,18 @@ impl Parser {
         expect!(self, Token::Semicolon)?;
         expect!(self, Token::CloseBrace)?;             // '}'
         Ok(FunctionDefinition::new(name, return_statement))
+    }
+}
+
+impl Token {
+    pub fn is_binary_operator(&self) -> Option<BinaryOperator> {
+        match self {
+            &Token::Plus => Some(BinaryOperator::Add),
+            &Token::Hyphen => Some(BinaryOperator::Subtract),
+            &Token::Asterisk => Some(BinaryOperator::Multiply),
+            &Token::Percent => Some(BinaryOperator::Mod),
+            &Token::Backslash => Some(BinaryOperator::Divide),
+            _ => None
+        }
     }
 }

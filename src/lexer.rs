@@ -16,6 +16,10 @@ pub enum Token {
     Tilde,
     Hyphen,
     Decrement,
+    Plus,
+    Asterisk,
+    Backslash,
+    Percent,
 }
 pub struct Lexer {
     input: String,
@@ -136,6 +140,10 @@ impl Lexer {
                 '{' => Token::OpenBrace,
                 '}' => Token::CloseBrace,
                 '~' => Token::Tilde,
+                '+' => Token::Plus,
+                '*' => Token::Asterisk,
+                '/' => Token::Backslash,
+                '%' => Token::Percent,
                 '-' => {
                     if let Ok(c) = self.peek_char() && c == '-' {
                         self.pos += 1; 

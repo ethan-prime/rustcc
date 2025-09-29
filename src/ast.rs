@@ -7,9 +7,39 @@ pub enum UnaryOperator {
 }
 
 #[derive(Debug)]
+pub enum BinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Mod,
+}
+
+impl BinaryOperator {
+    pub fn precedence(&self) -> i32 {
+        match self {
+            &BinaryOperator::Multiply => 10,
+            &BinaryOperator::Divide => 10,
+            &BinaryOperator::Mod => 10,
+            &BinaryOperator::Add => 9,
+            &BinaryOperator::Subtract => 9, 
+        }
+    }
+}
+
+#[derive(Debug)]
+
 pub enum ExprNode {
     Integer(i32),
-    Unary{unary_op: UnaryOperator, expr: Box<ExprNode>}
+    Unary{unary_op: UnaryOperator, expr: Box<ExprNode>},
+    Binary{lhs: Box<ExprNode>, rhs: Box<ExprNode>, binary_op: BinaryOperator},
+}
+
+#[derive(Debug)]
+pub enum FactorNode {
+    Integer(i32),
+    Unary{unary_op: UnaryOperator, expr: Box<ExprNode>},
+    Expr(Box<ExprNode>),
 }
 
 #[derive(Debug)]
