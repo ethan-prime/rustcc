@@ -51,7 +51,7 @@ impl Parser {
         }
     }
 
-    fn parse_expr(&mut self, min_prec: i32) -> Result<Box<ExprNode>, String> {
+    pub fn parse_expr(&mut self, min_prec: i32) -> Result<Box<ExprNode>, String> {
         let mut left = match self.parse_factor()? {
             FactorNode::Expr(expr) => expr,
             FactorNode::Unary{unary_op:op,expr:e} => Box::new(ExprNode::Unary { unary_op: op, expr: e }),
@@ -71,15 +71,15 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_factor(&mut self) -> Result<FactorNode, String> {
+    pub fn parse_factor(&mut self) -> Result<FactorNode, String> {
         let t = self.curr_tok()?;
         match t {
             &Token::Integer(i) => {
                 self.advance()?;
                 Ok(FactorNode::Integer(i))
             },
-            &Token::Hyphen | &Token::Tilde => {
-                let unary_op = match t {&Token::Hyphen => UnaryOperator::Negate, _ => UnaryOperator::Complement};
+            &Token::Hyphen | &Token::Tilde | &Token::Exclamation => {
+                let unary_op = t.is_unary_operator().unwrap(); // this doesnt fail
                 self.advance()?;
                 let expr: Box<ExprNode> = self.parse_expr(0)?;
                 Ok(FactorNode::Unary { unary_op, expr })
@@ -96,7 +96,7 @@ impl Parser {
         }
     }
  
-    fn parse_return_statement(&mut self) -> Result<StatementNode, String> {
+    pub fn parse_return_statement(&mut self) -> Result<StatementNode, String> {
         expect!(self, Token::Return)?;
         Ok(StatementNode::Return(*self.parse_expr(0)?))
     }
@@ -120,6 +120,15 @@ impl Parser {
 }
 
 impl Token {
+    pub fn is_unary_operator(&self) -> Option<UnaryOperator> {
+        match self {
+            &Token::Hyphen => Some(UnaryOperator::Negate),
+            &Token::Tilde => Some(UnaryOperator::Complement),
+            &Token::Exclamation => Some(UnaryOperator::Not),
+            _ => None
+        }
+    }
+
     pub fn is_binary_operator(&self) -> Option<BinaryOperator> {
         match self {
             &Token::Plus => Some(BinaryOperator::Add),
@@ -127,6 +136,14 @@ impl Token {
             &Token::Asterisk => Some(BinaryOperator::Multiply),
             &Token::Percent => Some(BinaryOperator::Mod),
             &Token::Backslash => Some(BinaryOperator::Divide),
+            &Token::AmpersandAmpersand => Some(BinaryOperator::And),
+            &Token::BarBar => Some(BinaryOperator::Or),
+            &Token::EqualEqual => Some(BinaryOperator::Equal),
+            &Token::ExclamationEqual => Some(BinaryOperator::NotEqual),
+            &Token::LessThan => Some(BinaryOperator::LessThan),
+            &Token::LessThanEqual => Some(BinaryOperator::LessThanEqual),
+            &Token::GreaterThan => Some(BinaryOperator::GreaterThan),
+            &Token::GreaterThanEqual => Some(BinaryOperator::GreaterThanEqual),
             _ => None
         }
     }

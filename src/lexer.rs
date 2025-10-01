@@ -20,6 +20,18 @@ pub enum Token {
     Asterisk,
     Backslash,
     Percent,
+    Exclamation,
+    Ampersand,
+    AmpersandAmpersand,
+    Bar,
+    BarBar,
+    EqualEqual,
+    Equal,
+    ExclamationEqual,
+    LessThan,
+    LessThanEqual,
+    GreaterThan,
+    GreaterThanEqual,
 }
 pub struct Lexer {
     input: String,
@@ -116,6 +128,16 @@ impl Lexer {
         }
     }
 
+    fn if_next_tok(&mut self, x: char, if_true: Token, if_false: Token) -> Token {
+        if let Ok(c) = self.peek_char() {
+            if c == x {
+                self.pos += 1;
+                return if_true;
+            }
+        }
+        if_false
+    }
+
     pub fn tokenize(&mut self) -> Vec<Token> {
         let match_identifier = | x: String | -> Token {
             match x.as_str() {
@@ -144,14 +166,13 @@ impl Lexer {
                 '*' => Token::Asterisk,
                 '/' => Token::Backslash,
                 '%' => Token::Percent,
-                '-' => {
-                    if let Ok(c) = self.peek_char() && c == '-' {
-                        self.pos += 1; 
-                        Token::Decrement
-                    } else {
-                        Token::Hyphen
-                    }
-                }
+                '!' => self.if_next_tok('=', Token::ExclamationEqual, Token::Exclamation),
+                '&' => self.if_next_tok('&', Token::AmpersandAmpersand, Token::Ampersand),
+                '|' => self.if_next_tok('|', Token::BarBar, Token::Bar),
+                '-' => self.if_next_tok('-', Token::Decrement, Token::Hyphen),
+                '=' => self.if_next_tok('=', Token::EqualEqual, Token::Equal),
+                '<' => self.if_next_tok('=', Token::LessThanEqual, Token::LessThan),
+                '>' => self.if_next_tok('=', Token::GreaterThanEqual, Token::GreaterThan),
                 _ => {
                     if c.is_numeric() {
                         Token::Integer(self.collect_number().unwrap())
